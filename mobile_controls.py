@@ -24,18 +24,12 @@ class MobileControls:
         self.bomb_pressed = False
         self.bomb_touch_id = None
 
-        # ── 暂停按钮（右上角）──
-        self.pause_rect = pygame.Rect(SCREEN_WIDTH - 55, 42, 46, 40)
-        self.pause_pressed = False
-        self.pause_touch_id = None
-
         # ── 输出状态 ──
         self.move_left = False
         self.move_right = False
         self.move_up = False
         self.move_down = False
         self.bomb_triggered = False   # 单帧脉冲
-        self.pause_triggered = False  # 单帧脉冲
 
         # 死区（避免轻微触碰就移动）
         self.dead_zone = 12
@@ -77,14 +71,6 @@ class MobileControls:
                 self.bomb_triggered = True
                 return
 
-        # 暂停按钮
-        if self.pause_rect.collidepoint(x, y):
-            if self.pause_touch_id is None:
-                self.pause_touch_id = finger_id
-                self.pause_pressed = True
-                self.pause_triggered = True
-                return
-
     # ═══════════════════════════════════════════════════
     def _on_touch_up(self, finger_id: int):
         if finger_id == self.joystick_touch_id:
@@ -96,10 +82,6 @@ class MobileControls:
         if finger_id == self.bomb_touch_id:
             self.bomb_touch_id = None
             self.bomb_pressed = False
-
-        if finger_id == self.pause_touch_id:
-            self.pause_touch_id = None
-            self.pause_pressed = False
 
     # ═══════════════════════════════════════════════════
     def _on_touch_move(self, x: float, y: float, finger_id: int):
@@ -133,7 +115,6 @@ class MobileControls:
     def reset_triggers(self):
         """每帧末调用，复位单帧脉冲信号"""
         self.bomb_triggered = False
-        self.pause_triggered = False
 
     # ═══════════════════════════════════════════════════
     def draw(self, surface: pygame.Surface):
@@ -184,21 +165,3 @@ class MobileControls:
         surface.blit(b_surf,
                      (bx2 - self.bomb_radius, by2 - self.bomb_radius))
 
-        # ── 暂停按钮 ──
-        p_alpha = 140 if self.pause_pressed else 80
-        p_surf = pygame.Surface((self.pause_rect.width, self.pause_rect.height),
-                                 pygame.SRCALPHA)
-        p_color = (180, 190, 210, p_alpha)
-        p_surf.fill(p_color)
-        pygame.draw.rect(p_surf, (140, 150, 180, p_alpha),
-                         (0, 0, self.pause_rect.width, self.pause_rect.height), 2)
-        # 双竖线（暂停图标）
-        bar_w = 5
-        bar_h = 18
-        bar_gap = 8
-        bar_y = (self.pause_rect.height - bar_h) // 2
-        for bx_off in [-bar_gap // 2, bar_gap // 2]:
-            bx_bar = self.pause_rect.width // 2 + bx_off - bar_w // 2
-            pygame.draw.rect(p_surf, (220, 230, 255, 160),
-                             (bx_bar, bar_y, bar_w, bar_h))
-        surface.blit(p_surf, (self.pause_rect.x, self.pause_rect.y))

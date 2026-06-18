@@ -211,21 +211,13 @@ class Game:
         # ── 暂停 ──
         if self.paused:
             self.starfield.update()
-            # 移动端暂停时仍可切换暂停
             if self.mobile_ctrl:
-                if self.mobile_ctrl.pause_triggered:
-                    self.paused = False
                 self.mobile_ctrl.reset_triggers()
             return
 
         # ── 移动端：摇杆控制玩家方向 ──
         if self.mobile_ctrl:
             mc = self.mobile_ctrl
-            # 暂停切换
-            if mc.pause_triggered:
-                self.paused = True
-                mc.reset_triggers()
-                return
             # 炸弹
             if mc.bomb_triggered and self.player.bombs > 0:
                 self.player._use_bomb = True
