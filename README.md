@@ -4,7 +4,7 @@
 
 ## 🎮 在线试玩
 
-**👉 [点击这里开始游戏](https://ahao728.github.io/-/) 👈**
+**👉 [点击这里开始游戏](https://ahao728.github.io/space-shooter/) 👈**
 
 > 支持 PC 键盘操作 & 手机触屏操控，打开浏览器就能玩！
 
