@@ -3,6 +3,7 @@ ui.py — 中文 HUD / 菜单 / 结束画面 / 暂停 / Boss 警告
 打飞机 Space Shooter
 """
 import os
+import io
 import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, RED, YELLOW, CYAN, ORANGE, GREEN, ASSETS_DIR
 
@@ -21,13 +22,61 @@ def set_web_mode(enabled: bool):
     _web_mode = enabled
 
 
-def _load_cjk_font(size: int) -> pygame.font.Font:
-    """加载支持中文的字体，带缓存"""
+class _FreetypeFontAdapter:
+    """将 pygame.freetype.Font 适配为 pygame.font.Font 的 .render() 接口"""
+
+    def __init__(self, ft_font, ptsize: int):
+        self._ft = ft_font
+        self.ptsize = ptsize
+
+    def render(self, text: str, antialias: bool, color,
+               background=None) -> pygame.Surface:
+        """返回 pygame.Surface（兼容 pygame.font.Font.render）"""
+        kwargs = dict(fgcolor=color, size=self.ptsize)
+        if background is not None:
+            kwargs["bgcolor"] = background
+        surf, _rect = self._ft.render(text, **kwargs)
+        return surf
+
+
+def _load_cjk_font(size: int):
+    """加载支持中文的字体，带缓存。
+    返回 pygame.font.Font 或 _FreetypeFontAdapter（均支持 .render()）"""
+
     if size in _cjk_font_cache:
         return _cjk_font_cache[size]
 
-    # ── 1. 优先加载打包的字体文件（Web 环境必需）──
+    # ═══════════════════════════════════════════════════════
+    #  1. 尝试 pygame.freetype 加载捆绑字体（Web + 桌面通用）
+    # ═══════════════════════════════════════════════════════
     bundled = os.path.join(ASSETS_DIR, "font.ttf")
+    try:
+        # 方式 A：文件路径（桌面环境有效）
+        ft = pygame.freetype.Font(bundled, size=size)
+        test_surf, _ = ft.render("中", fgcolor=WHITE, size=size)
+        if test_surf.get_width() > 5:
+            font = _FreetypeFontAdapter(ft, size)
+            _cjk_font_cache[size] = font
+            return font
+    except Exception:
+        pass
+
+    # 方式 B：读取字节流传入（Web 环境更可靠）
+    try:
+        with open(bundled, "rb") as fh:
+            font_data = fh.read()
+        ft = pygame.freetype.Font(io.BytesIO(font_data), size=size)
+        test_surf, _ = ft.render("中", fgcolor=WHITE, size=size)
+        if test_surf.get_width() > 5:
+            font = _FreetypeFontAdapter(ft, size)
+            _cjk_font_cache[size] = font
+            return font
+    except Exception:
+        pass
+
+    # ═══════════════════════════════════════════════════════
+    #  2. 传统 pygame.font 方式（后备）
+    # ═══════════════════════════════════════════════════════
     if os.path.exists(bundled):
         try:
             font = pygame.font.Font(bundled, size)
@@ -38,40 +87,44 @@ def _load_cjk_font(size: int) -> pygame.font.Font:
         except Exception:
             pass
 
-    # ── 2. 尝试系统字体名 ──
+    # ═══════════════════════════════════════════════════════
+    #  3. 系统字体名
+    # ═══════════════════════════════════════════════════════
     font_names = [
         "simhei", "microsoftyahei", "notosanscjk",
         "wqy-microhei", "pingfang", "heiti sc",
     ]
-
-    font = None
     for name in font_names:
         try:
             font = pygame.font.SysFont(name, size)
             test = font.render("中", True, WHITE)
             if test.get_width() > 5:
-                break
-            font = None
+                _cjk_font_cache[size] = font
+                return font
         except Exception:
             continue
 
-    if font is None:
-        win_font_paths = [
-            r"C:\Windows\Fonts\simhei.ttf",
-            r"C:\Windows\Fonts\msyh.ttc",
-            r"C:\Windows\Fonts\Deng.ttf",
-        ]
-        for path in win_font_paths:
-            if os.path.exists(path):
-                try:
-                    font = pygame.font.Font(path, size)
-                    break
-                except Exception:
-                    continue
+    # ═══════════════════════════════════════════════════════
+    #  4. Windows 字体路径（桌面兜底）
+    # ═══════════════════════════════════════════════════════
+    win_font_paths = [
+        r"C:\Windows\Fonts\simhei.ttf",
+        r"C:\Windows\Fonts\msyh.ttc",
+        r"C:\Windows\Fonts\Deng.ttf",
+    ]
+    for path in win_font_paths:
+        if os.path.exists(path):
+            try:
+                font = pygame.font.Font(path, size)
+                _cjk_font_cache[size] = font
+                return font
+            except Exception:
+                continue
 
-    if font is None:
-        font = pygame.font.Font(None, size)
-
+    # ═══════════════════════════════════════════════════════
+    #  5. 默认字体（ASCII only，中文会变豆腐块）
+    # ═══════════════════════════════════════════════════════
+    font = pygame.font.Font(None, size)
     _cjk_font_cache[size] = font
     return font
 
