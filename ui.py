@@ -356,11 +356,15 @@ def draw_menu(surface: pygame.Surface):
     sub_rect = sub.get_rect(center=(cx, cy - 85))
     surface.blit(sub, sub_rect)
 
-    # 闪烁键盘提示（黑色文字）
+    # 闪烁提示（黑色文字）
     tick = pygame.time.get_ticks()
     if (tick // 700) % 2 == 0:
         hint_font = _load_cjk_font(28)
-        hint = hint_font.render("按 空格键 开始游戏", True, (20, 20, 30))
+        if _web_mode:
+            hint_text = "点击屏幕开始游戏"
+        else:
+            hint_text = "按 空格键 开始游戏"
+        hint = hint_font.render(hint_text, True, (20, 20, 30))
         hint_rect = hint.get_rect(center=(cx, cy + 20))
         surface.blit(hint, hint_rect)
 

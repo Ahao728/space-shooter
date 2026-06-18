@@ -108,6 +108,9 @@ class Game:
             if self.mobile_ctrl:
                 if event.type in (pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION):
                     self.mobile_ctrl.handle_finger_event(event)
+                # 菜单状态下，轻触屏幕任意位置开始游戏
+                if self.state == "menu" and event.type == pygame.FINGERDOWN:
+                    self._start_game()
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -140,7 +143,12 @@ class Game:
         # ════════════════════════════════════════
         #  按钮交互（每帧检测）
         # ════════════════════════════════════════
-        if self.state == "game_over":
+        if self.state == "menu":
+            # 菜单：鼠标点击 / 触摸任意位置 → 开始游戏
+            if self._mouse_down:
+                self._start_game()
+
+        elif self.state == "game_over":
             # 按钮定位到结束页面位置
             cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
             self.btn_restart.rect.center = (cx, cy + 10)
