@@ -26,6 +26,19 @@ def _load_cjk_font(size: int) -> pygame.font.Font:
     if size in _cjk_font_cache:
         return _cjk_font_cache[size]
 
+    # ── 1. 优先加载打包的字体文件（Web 环境必需）──
+    bundled = os.path.join(ASSETS_DIR, "font.ttf")
+    if os.path.exists(bundled):
+        try:
+            font = pygame.font.Font(bundled, size)
+            test = font.render("中", True, WHITE)
+            if test.get_width() > 5:
+                _cjk_font_cache[size] = font
+                return font
+        except Exception:
+            pass
+
+    # ── 2. 尝试系统字体名 ──
     font_names = [
         "simhei", "microsoftyahei", "notosanscjk",
         "wqy-microhei", "pingfang", "heiti sc",
