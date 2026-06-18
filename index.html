@@ -56,6 +56,12 @@
             width: 100% !important;
             height: 100% !important;
         }
+        /* 隐藏 Pygbag 自带的控制栏（游戏已有独立暂停按钮） */
+        #pygbag-status,
+        #pygbag-controls,
+        div[id^="pygbag"] {
+            display: none !important;
+        }
         /* 加载提示 */
         #loading {
             position: fixed;
