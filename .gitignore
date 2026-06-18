@@ -1,0 +1,20 @@
+# PyInstaller
+build/
+dist/
+*.spec
+
+# pygbag web build
+build/web/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
