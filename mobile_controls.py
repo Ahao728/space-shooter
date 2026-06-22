@@ -103,22 +103,6 @@ class MobileControls:
     # ═══════════════════════════════════════════════════
     def draw(self, surface: pygame.Surface):
         """绘制虚拟控件（半透明）"""
-        # ── 滑动方向指示 ──
-        if self.swipe_active and self.swipe_start and self.swipe_current:
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            sx, sy = self.swipe_start
-            cx, cy = self.swipe_current
-            # 起点空心圆
-            pygame.draw.circle(overlay, (200, 220, 255, 100),
-                               (int(sx), int(sy)), 10, 2)
-            # 方向线
-            pygame.draw.line(overlay, (200, 220, 255, 120),
-                             (int(sx), int(sy)), (int(cx), int(cy)), 3)
-            # 当前位置实心圆
-            pygame.draw.circle(overlay, (200, 220, 255, 150),
-                               (int(cx), int(cy)), 8)
-            surface.blit(overlay, (0, 0))
-
         # ── 炸弹按钮 ──
         b_alpha = 180 if self.bomb_pressed else 100
         b_color = (255, 120, 40, b_alpha)
