@@ -1,5 +1,5 @@
 """
-mobile_controls.py — 移动端触摸虚拟控件
+mobile_controls.py — 移动端触摸滑动控件
 打飞机 Space Shooter · Web/Mobile
 """
 import pygame
@@ -7,16 +7,14 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class MobileControls:
-    """移动端虚拟摇杆 + 按钮 — 半透明叠加层"""
+    """移动端滑屏控制 + 炸弹按钮 — 半透明叠加层"""
 
     def __init__(self):
-        # ── 虚拟摇杆（左下角）──
-        self.joystick_base_center = (90, SCREEN_HEIGHT - 130)
-        self.joystick_radius = 52
-        self.joystick_knob_center = list(self.joystick_base_center)
-        self.joystick_knob_radius = 24
-        self.joystick_active = False
-        self.joystick_touch_id = None
+        # ── 滑屏移动控制 ──
+        self.swipe_start = None          # 触摸起始点 (x, y)
+        self.swipe_current = None        # 当前触摸位置 (x, y)
+        self.swipe_touch_id = None
+        self.swipe_active = False
 
         # ── 炸弹按钮（右下角）──
         self.bomb_center = (SCREEN_WIDTH - 80, SCREEN_HEIGHT - 130)
@@ -52,59 +50,51 @@ class MobileControls:
 
     # ═══════════════════════════════════════════════════
     def _on_touch_down(self, x: float, y: float, finger_id: int):
-        # 摇杆区域
-        bx, by = self.joystick_base_center
-        if ((x - bx) ** 2 + (y - by) ** 2) < (self.joystick_radius + 20) ** 2:
-            if self.joystick_touch_id is None:
-                self.joystick_touch_id = finger_id
-                self.joystick_active = True
-                self.joystick_knob_center = [x, y]
-                self._update_joystick_output(x, y)
-                return
-
-        # 炸弹按钮
-        bx2, by2 = self.bomb_center
-        if ((x - bx2) ** 2 + (y - by2) ** 2) < (self.bomb_radius + 10) ** 2:
+        # 炸弹按钮优先
+        bx, by = self.bomb_center
+        if ((x - bx) ** 2 + (y - by) ** 2) < (self.bomb_radius + 10) ** 2:
             if self.bomb_touch_id is None:
                 self.bomb_touch_id = finger_id
                 self.bomb_pressed = True
                 self.bomb_triggered = True
                 return
 
+        # 滑屏移动（屏幕任意位置，且未被占用）
+        if self.swipe_touch_id is None:
+            self.swipe_touch_id = finger_id
+            self.swipe_active = True
+            self.swipe_start = (x, y)
+            self.swipe_current = (x, y)
+            self._update_swipe_output(x, y)
+
     # ═══════════════════════════════════════════════════
     def _on_touch_up(self, finger_id: int):
-        if finger_id == self.joystick_touch_id:
-            self.joystick_touch_id = None
-            self.joystick_active = False
-            self.joystick_knob_center = list(self.joystick_base_center)
-            self.move_left = self.move_right = self.move_up = self.move_down = False
-
         if finger_id == self.bomb_touch_id:
             self.bomb_touch_id = None
             self.bomb_pressed = False
 
+        if finger_id == self.swipe_touch_id:
+            self.swipe_touch_id = None
+            self.swipe_active = False
+            self.swipe_start = None
+            self.swipe_current = None
+            self.move_left = self.move_right = self.move_up = self.move_down = False
+
     # ═══════════════════════════════════════════════════
     def _on_touch_move(self, x: float, y: float, finger_id: int):
-        if finger_id == self.joystick_touch_id:
-            bx, by = self.joystick_base_center
-            dx = x - bx
-            dy = y - by
-            dist = (dx ** 2 + dy ** 2) ** 0.5
-            max_dist = self.joystick_radius - self.joystick_knob_radius
-
-            if dist > max_dist:
-                dx = dx / dist * max_dist
-                dy = dy / dist * max_dist
-
-            self.joystick_knob_center = [bx + dx, by + dy]
-            self._update_joystick_output(x, y)
+        if finger_id == self.swipe_touch_id and self.swipe_active:
+            self.swipe_current = (x, y)
+            self._update_swipe_output(x, y)
 
     # ═══════════════════════════════════════════════════
-    def _update_joystick_output(self, x: float, y: float):
-        """根据摇杆位置更新方向输出"""
-        bx, by = self.joystick_base_center
-        dx = x - bx
-        dy = y - by
+    def _update_swipe_output(self, x: float, y: float):
+        """根据从起始点的滑动偏移更新方向输出"""
+        if self.swipe_start is None:
+            return
+
+        sx, sy = self.swipe_start
+        dx = x - sx
+        dy = y - sy
 
         self.move_left = dx < -self.dead_zone
         self.move_right = dx > self.dead_zone
@@ -119,32 +109,21 @@ class MobileControls:
     # ═══════════════════════════════════════════════════
     def draw(self, surface: pygame.Surface):
         """绘制虚拟控件（半透明）"""
-        # ── 摇杆底座 ──
-        base_alpha = 80
-        base_surf = pygame.Surface((self.joystick_radius * 2, self.joystick_radius * 2),
-                                    pygame.SRCALPHA)
-        pygame.draw.circle(base_surf, (180, 190, 210, base_alpha),
-                           (self.joystick_radius, self.joystick_radius),
-                           self.joystick_radius)
-        pygame.draw.circle(base_surf, (140, 150, 180, base_alpha),
-                           (self.joystick_radius, self.joystick_radius),
-                           self.joystick_radius, 2)
-        bx, by = self.joystick_base_center
-        surface.blit(base_surf,
-                     (bx - self.joystick_radius, by - self.joystick_radius))
-
-        # ── 摇杆旋钮 ──
-        knob_alpha = 140
-        knob_surf = pygame.Surface((self.joystick_knob_radius * 2,
-                                     self.joystick_knob_radius * 2),
-                                    pygame.SRCALPHA)
-        pygame.draw.circle(knob_surf, (200, 220, 255, knob_alpha),
-                           (self.joystick_knob_radius, self.joystick_knob_radius),
-                           self.joystick_knob_radius)
-        kx, ky = self.joystick_knob_center
-        surface.blit(knob_surf,
-                     (kx - self.joystick_knob_radius,
-                      ky - self.joystick_knob_radius))
+        # ── 滑动方向指示 ──
+        if self.swipe_active and self.swipe_start and self.swipe_current:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            sx, sy = self.swipe_start
+            cx, cy = self.swipe_current
+            # 起点空心圆
+            pygame.draw.circle(overlay, (200, 220, 255, 100),
+                               (int(sx), int(sy)), 10, 2)
+            # 方向线
+            pygame.draw.line(overlay, (200, 220, 255, 120),
+                             (int(sx), int(sy)), (int(cx), int(cy)), 3)
+            # 当前位置实心圆
+            pygame.draw.circle(overlay, (200, 220, 255, 150),
+                               (int(cx), int(cy)), 8)
+            surface.blit(overlay, (0, 0))
 
         # ── 炸弹按钮 ──
         b_alpha = 180 if self.bomb_pressed else 100
@@ -164,4 +143,3 @@ class MobileControls:
         bx2, by2 = self.bomb_center
         surface.blit(b_surf,
                      (bx2 - self.bomb_radius, by2 - self.bomb_radius))
-
