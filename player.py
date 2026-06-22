@@ -91,6 +91,13 @@ class Player:
         return max(self.triple_timer, self.rapid_timer, self.piercing_timer)
 
     # ═══════════════════════════════════════════
+    def move_to(self, x: float, y: float):
+        """直接移动到目标位置（跟手滑动），自动边界限制"""
+        margin = self.radius
+        self.x = max(margin, min(SCREEN_WIDTH - margin, x))
+        self.y = max(margin, min(SCREEN_HEIGHT - margin, y))
+
+    # ═══════════════════════════════════════════
     def handle_event(self, event: pygame.event.Event):
         """处理键盘输入"""
         if event.type == pygame.KEYDOWN:

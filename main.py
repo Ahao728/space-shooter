@@ -85,6 +85,10 @@ class Game:
         self._bomb_flash = 0          # 炸弹闪白倒计时
         self._player_dying = False    # 玩家死亡动画中
         self.paused = False
+        # 滑屏跟手：记录手指按下时飞机的位置
+        self._swipe_origin_x = 0.0
+        self._swipe_origin_y = 0.0
+        self._was_swipe_active = False
 
     def _start_game(self):
         self._init_game()
@@ -215,17 +219,22 @@ class Game:
                 self.mobile_ctrl.reset_triggers()
             return
 
-        # ── 移动端：摇杆控制玩家方向 ──
+        # ── 移动端：滑屏跟手控制 ──
         if self.mobile_ctrl:
             mc = self.mobile_ctrl
             # 炸弹
             if mc.bomb_triggered and self.player.bombs > 0:
                 self.player._use_bomb = True
-            # 摇杆方向
-            self.player.move_left = mc.move_left
-            self.player.move_right = mc.move_right
-            self.player.move_up = mc.move_up
-            self.player.move_down = mc.move_down
+            # 滑屏：飞机跟随手指位置（死亡动画期间不响应）
+            if mc.swipe_active and not self._player_dying:
+                if not self._was_swipe_active:
+                    # 手指刚按下，记录飞机当前位置作为滑动原点
+                    self._swipe_origin_x = self.player.x
+                    self._swipe_origin_y = self.player.y
+                target_x = self._swipe_origin_x + mc.swipe_dx
+                target_y = self._swipe_origin_y + mc.swipe_dy
+                self.player.move_to(target_x, target_y)
+            self._was_swipe_active = mc.swipe_active
 
         # ── 玩家死亡动画 ──
         if self._player_dying:

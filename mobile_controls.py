@@ -7,7 +7,11 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class MobileControls:
-    """移动端滑屏控制 + 炸弹按钮 — 半透明叠加层"""
+    """移动端滑屏控制 + 炸弹按钮 — 半透明叠加层
+
+    滑屏：手指在屏幕上任意位置按下并滑动，飞机跟随手指移动。
+    松手后飞机停在原位，不会自动回中。
+    """
 
     def __init__(self):
         # ── 滑屏移动控制 ──
@@ -23,14 +27,22 @@ class MobileControls:
         self.bomb_touch_id = None
 
         # ── 输出状态 ──
-        self.move_left = False
-        self.move_right = False
-        self.move_up = False
-        self.move_down = False
         self.bomb_triggered = False   # 单帧脉冲
 
-        # 死区（避免轻微触碰就移动）
-        self.dead_zone = 12
+    # ═══════════════════════════════════════════════════
+    @property
+    def swipe_dx(self) -> float:
+        """当前触摸点相对于起始点的 X 偏移量"""
+        if self.swipe_active and self.swipe_start is not None and self.swipe_current is not None:
+            return self.swipe_current[0] - self.swipe_start[0]
+        return 0.0
+
+    @property
+    def swipe_dy(self) -> float:
+        """当前触摸点相对于起始点的 Y 偏移量"""
+        if self.swipe_active and self.swipe_start is not None and self.swipe_current is not None:
+            return self.swipe_current[1] - self.swipe_start[1]
+        return 0.0
 
     # ═══════════════════════════════════════════════════
     def handle_finger_event(self, event: pygame.event.Event):
@@ -65,7 +77,6 @@ class MobileControls:
             self.swipe_active = True
             self.swipe_start = (x, y)
             self.swipe_current = (x, y)
-            self._update_swipe_output(x, y)
 
     # ═══════════════════════════════════════════════════
     def _on_touch_up(self, finger_id: int):
@@ -78,28 +89,11 @@ class MobileControls:
             self.swipe_active = False
             self.swipe_start = None
             self.swipe_current = None
-            self.move_left = self.move_right = self.move_up = self.move_down = False
 
     # ═══════════════════════════════════════════════════
     def _on_touch_move(self, x: float, y: float, finger_id: int):
         if finger_id == self.swipe_touch_id and self.swipe_active:
             self.swipe_current = (x, y)
-            self._update_swipe_output(x, y)
-
-    # ═══════════════════════════════════════════════════
-    def _update_swipe_output(self, x: float, y: float):
-        """根据从起始点的滑动偏移更新方向输出"""
-        if self.swipe_start is None:
-            return
-
-        sx, sy = self.swipe_start
-        dx = x - sx
-        dy = y - sy
-
-        self.move_left = dx < -self.dead_zone
-        self.move_right = dx > self.dead_zone
-        self.move_up = dy < -self.dead_zone
-        self.move_down = dy > self.dead_zone
 
     # ═══════════════════════════════════════════════════
     def reset_triggers(self):
